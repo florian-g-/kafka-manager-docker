@@ -1,4 +1,4 @@
-# Kafka Manager Dockerfile
+# Kafka Manager Docker
 [Kafka Manager](https://github.com/yahoo/kafka-manager) is a tool from Yahoo Inc. for managing [Apache Kafka](http://kafka.apache.org).
 
 **NOTE:**
