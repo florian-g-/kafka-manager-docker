@@ -1,37 +1,28 @@
-# Docker compose to have Zookeeper, Kafka, and Kafka Manager running for development.
-# Provided by @chris-zen
+version: "3"
 
-zookeeper:
-  image: confluent/zookeeper
-  ports:
-    - "2181:2181"
+services:
 
-kafka:
-  image: wurstmeister/kafka:0.9.0.0-1
-  ports:
-    - "9092:9092"
-  links:
-    - zookeeper:zk
-  environment:
-    - KAFKA_ADVERTISED_HOST_NAME
-    - KAFKA_ADVERTISED_PORT=9092
-    - KAFKA_DELETE_TOPIC_ENABLE=true
-    - KAFKA_LOG_RETENTION_HOURS=1
-    - KAFKA_MESSAGE_MAX_BYTES=10000000
-    - KAFKA_REPLICA_FETCH_MAX_BYTES=10000000
-    - KAFKA_GROUP_MAX_SESSION_TIMEOUT_MS=60000
-    - KAFKA_NUM_PARTITIONS=2
-    - KAFKA_DELETE_RETENTION_MS=1000
+  kafkamanager:
+    image: fgr206/kafkamanager
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: host
+    environment:
+      ZK_HOSTS: 'localhost:62181'
 
+  km-zookeeper:
+    image: 'zookeeper'
+    #network_mode: "service:kafkamanager"
+    ports:
+      - "62181:2181"
+    networks:
+      - kafkamanager-net
+    volumes:
+      - ~/fgr_dockervolumes/kafkamanager_conf/data:/data
+      - ~/fgr_dockervolumes/kafkamanager_conf/datalog:/datalog
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
 
-kafka-manager:
-  image: sheepkiller/kafka-manager:latest
-  ports:
-    - "9000:9000"
-  links:
-    - zookeeper
-    - kafka
-  environment:
-    ZK_HOSTS: zookeeper:2181
-    APPLICATION_SECRET: letmein
-    KM_ARGS: -Djava.net.preferIPv4Stack=true
+networks:
+  kafkamanager-net:

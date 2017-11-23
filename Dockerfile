@@ -1,34 +1,35 @@
-FROM centos:7
+# docker build --no-cache -t fgr206/kafkamanager - < Dockerfile-kafkamanager
+# docker run --name kafkamanager --network=host -d -e ZK_HOSTS=localhost:62181 fgr206/fgr206/kafkamanager
+# docker run --name kafkamanager --network=host -it --rm --entrypoint="bash" fgr206/kafkamanager
+# docker-compose up -d
 
-MAINTAINER Clement Laforet <sheepkiller@cultdeadsheep.org>
+FROM anapsix/alpine-java:8_jdk
 
-RUN yum update -y && \
-    yum install -y java-1.8.0-openjdk-headless && \
-    yum clean all
+LABEL maintainer='Florian Grote <info@grote-florian.de>'
 
-ENV JAVA_HOME=/usr/java/default/ \
-    ZK_HOSTS=localhost:2181 \
-    KM_VERSION=1.3.1.8 \
-    KM_REVISION=97329cc8bf462723232ee73dc6702c064b5908eb \
+ENV KM_GIT_TAG="1.3.3.14" \
+    ZK_HOSTS="localhost:2181" \
+    KM_ARGS="" \
+    KM_PORT=9988 \
     KM_CONFIGFILE="conf/application.conf"
 
-ADD start-kafka-manager.sh /kafka-manager-${KM_VERSION}/start-kafka-manager.sh
-
-RUN yum install -y java-1.8.0-openjdk-devel git wget unzip which && \
-    mkdir -p /tmp && \
+RUN apk add --no-cache git wget && \
     cd /tmp && \
     git clone https://github.com/yahoo/kafka-manager && \
     cd /tmp/kafka-manager && \
-    git checkout ${KM_REVISION} && \
+    git checkout -b v_${KM_GIT_TAG} ${KM_GIT_TAG} && \
     echo 'scalacOptions ++= Seq("-Xmax-classfile-name", "200")' >> build.sbt && \
     ./sbt clean dist && \
-    unzip  -d / ./target/universal/kafka-manager-${KM_VERSION}.zip && \
+    unzip  -d / /tmp/kafka-manager/target/universal/kafka-manager-*.zip && \
+    mv /kafka-manager-* /kafka-manager && \
     rm -fr /tmp/* /root/.sbt /root/.ivy2 && \
-    chmod +x /kafka-manager-${KM_VERSION}/start-kafka-manager.sh && \
-    yum autoremove -y java-1.8.0-openjdk-devel git wget unzip which && \
-    yum clean all
+    printf '#!/bin/sh\nexec ./bin/kafka-manager -Dconfig.file=${KM_CONFIGFILE} -Dhttp.port=${KM_PORT} "${KM_ARGS}" "${@}"\n' > /kafka-manager/km.sh && \
+    chmod +x /kafka-manager/km.sh && \
+    rm -fr /kafka-manager/share && \
+    apk del git wget
 
-WORKDIR /kafka-manager-${KM_VERSION}
+WORKDIR /kafka-manager
 
-EXPOSE 9000
-ENTRYPOINT ["./start-kafka-manager.sh"]
+EXPOSE ${KM_PORT}
+
+ENTRYPOINT ["./km.sh"]
