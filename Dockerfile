@@ -7,7 +7,7 @@ FROM anapsix/alpine-java:8_jdk
 
 LABEL maintainer='Florian Grote <info@grote-florian.de>'
 
-ENV KM_GIT_TAG="1.3.3.14" \
+ENV KM_GIT_TAG="1.3.3.16" \
     ZK_HOSTS="localhost:2181" \
     KM_ARGS="" \
     KM_PORT=9988 \
